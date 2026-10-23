@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v14 부스터</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#111827">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--sub:#6b7280;--line:#e5e7eb;--track:#eef0f3;--ok:#16a34a;--warn:#d97706;--off:#6b7280;--mark:#111827;--live:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa}}
+:root[data-theme="dark"]{--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+.head{border-radius:14px;padding:16px;color:#fff;background:var(--off)}
+.head b{font-size:20px;display:block}
+.head span{opacity:.9;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.k{font-size:13px;color:var(--sub)}
+.v{font-size:30px;font-weight:700;letter-spacing:-.5px}
+.ok{color:var(--ok)}
+.bar{position:relative;height:12px;background:var(--track);border-radius:6px;margin:14px 0 22px}
+.fill{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--sub)}
+.tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--mark)}
+.tick i{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--sub);white-space:nowrap}
+.dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--live);border:2px solid var(--card);transform:translate(-50%,-50%)}
+.note{font-size:13px;color:var(--sub);margin:2px 0 0}
+.foot{font-size:12px;color:var(--sub);margin:14px 2px;line-height:1.6}
+.err{color:#dc2626}
+</style>
+</head>
+<body>
+<main>
+  <div class="head" id="head"><b id="h1">불러오는 중</b><span id="h2"></span></div>
+
+  <div class="card">
+    <div class="row"><span class="k">조건 1 · QLD 고점 대비</span><span class="k" id="d-ok"></span></div>
+    <div class="v" id="d-v">…</div>
+    <div class="bar" id="d-bar"></div>
+    <p class="note" id="d-n1"></p>
+    <p class="note" id="d-n2"></p>
+  </div>
+
+  <div class="card">
+    <div class="row"><span class="k">조건 2 · MMTW (20일선 위 종목 비율)</span><span class="k" id="m-ok"></span></div>
+    <div class="v" id="m-v">…</div>
+    <div class="bar" id="m-bar"></div>
+    <p class="note" id="m-n1"></p>
+    <p class="note" id="m-n2"></p>
+  </div>
+
+  <p class="foot" id="foot"></p>
+</main>
+<script>
+const URL_ = "https://raw.githubusercontent.com/matin32644-prog/booster/data/b.json";
+const $ = id => document.getElementById(id);
+const pct = x => (x < 0 ? "−" + (-x).toFixed(1) : (x > 0 ? "+" : "") + x.toFixed(1)) + "%";
+const md = d => d ? (+d.slice(5, 7)) + "/" + (+d.slice(8, 10)) : "";
+
+function bar(el, lo, hi, val, live, ticks) {
+  // lo..hi 를 왼쪽→오른쪽으로. 막대는 0(왼쪽 끝)에서 현재값까지
+  const pos = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
+  let h = '<div class="fill" style="left:0;width:' + pos(val) + '%"></div>';
+  for (const [x, lab] of ticks) h += '<div class="tick" style="left:' + pos(x) + '%"><i>' + lab + '</i></div>';
+  if (live != null) h += '<div class="dot" style="left:' + pos(live) + '%" title="장중"></div>';
+  el.innerHTML = h;
+}
+
+async function load() {
+  try {
+    const r = await fetch(URL_ + "?t=" + Date.now(), {cache: "no-store"});
+    const j = await r.json();
+    const c = j.close, R = j.rule, L = j.live;
+    $("head").style.background = j.color;
+    $("h1").textContent = j.l1;
+    $("h2").textContent = md(c.date) + " 종가 기준 · 판정은 매일 " + R.run;
+
+    $("d-v").textContent = pct(c.dd);
+    $("d-v").className = "v" + (c.dd_ok ? " ok" : "");
+    $("d-ok").textContent = c.dd_ok ? "✅ 충족" : "⬜ 미충족";
+    bar($("d-bar"), 0, -30, c.dd, L ? L.dd : null, [[R.gate, pct(R.gate)]]);
+    $("d-n1").textContent = c.dd_ok ? "게이트 " + pct(R.gate) + " 넘음"
+      : "게이트 $" + c.gate_px.toFixed(2) + "까지 " + pct(c.need);
+    $("d-n2").textContent = "종가 $" + c.qld.toFixed(2) + " · 전고점 $" + c.ath.toFixed(2) + " (" + md(c.ath_date) + ")"
+      + (L ? " · 장중 " + L.t + " $" + L.qld.toFixed(2) + " (" + pct(L.dd) + ")" : "");
+
+    const mm = c.mmtw;
+    $("m-v").textContent = mm == null ? "조회 실패" : mm.toFixed(1);
+    $("m-v").className = "v" + (c.m1 ? " ok" : "");
+    $("m-ok").textContent = c.m2 ? "✅ 2단" : (c.m1 ? "✅ 1단" : "⬜ 미충족");
+    if (mm != null) bar($("m-bar"), 100, 0, mm, L && L.mmtw != null ? L.mmtw : null, [[R.t1, "20 · 1단"], [R.t2, "10 · 2단"]]);
+    $("m-n1").textContent = mm == null ? "" : (c.m1 ? (c.m2 ? "2단 구간" : "2단(" + R.t2 + " 미만)까지 " + (mm - R.t2).toFixed(1))
+      : R.t1 + " 미만까지 " + (mm - R.t1).toFixed(1) + " 남음");
+    $("m-n2").textContent = (c.mmtw_date && c.mmtw_date < c.date ? md(c.mmtw_date) + " 확정값 · " + md(c.date) + " 확정 대기" : md(c.mmtw_date) + " 확정")
+      + (L && L.mmtw != null ? " · 장중 추정 " + L.mmtw.toFixed(1) + " (" + L.mmtw_t + ")" : "");
+
+    $("foot").innerHTML = "부스터 = 조건 1 «그리고» 조건 2. MMTW " + R.t1 + " 미만이면 1단 " + R.ticker + " "
+      + (R.u1_krw / 1e4) + "만원, " + R.t2 + " 미만이면 2단 " + (R.u2_krw / 1e4) + "만원.<br>"
+      + "파란 점 = 장중 값(추정, 판정 아님) · 갱신 " + j.updated + " KST";
+  } catch (e) {
+    $("h1").textContent = "불러오기 실패";
+    $("foot").innerHTML = '<span class="err">' + e + "</span>";
+  }
+}
+load();
+setInterval(() => { if (!document.hidden) load(); }, 5 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
