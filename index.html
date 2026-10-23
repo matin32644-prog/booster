@@ -30,11 +30,15 @@ main{max-width:520px;margin:0 auto;padding:16px}
 .note{font-size:13px;color:var(--sub);margin:2px 0 0}
 .foot{font-size:12px;color:var(--sub);margin:14px 2px;line-height:1.6}
 .err{color:#dc2626}
+.stale{margin-top:12px;border-radius:14px;padding:12px 16px;background:#fef3c7;color:#78350f;font-size:14px;line-height:1.5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stale{background:#3b2a06;color:#fde68a}}
+:root[data-theme="dark"] .stale{background:#3b2a06;color:#fde68a}
 </style>
 </head>
 <body>
 <main>
   <div class="head" id="head"><b id="h1">불러오는 중</b><span id="h2"></span></div>
+  <div class="stale" id="stale" hidden></div>
 
   <div class="card">
     <div class="row"><span class="k">조건 1 · QLD 고점 대비</span><span class="k" id="d-ok"></span></div>
@@ -77,6 +81,16 @@ async function load() {
     $("head").style.background = j.color;
     $("h1").textContent = j.l1;
     $("h2").textContent = md(c.date) + " 종가 기준 · 판정은 매일 " + R.run;
+
+    // 멈춤 표시: 위젯 갱신 자체가 멈춘 경우(3시간마다 신호, 4시간 넘으면) + 자료가 밀린 경우(스크립트가 적은 stale)
+    const S = j.stale || {}, warn = [];
+    const age = (Date.now() - new Date(j.updated.replace(" ", "T") + ":00+09:00").getTime()) / 3.6e6;
+    if (age > 4) warn.push("⚠ 위젯 갱신이 " + Math.floor(age) + "시간째 멈춤 (" + j.updated + " KST 마지막). 집 PC가 꺼졌거나 잠들었을 수 있습니다");
+    if (S.close) warn.push("⚠ 종가 자료가 " + S.close_lag + "거래일 밀림: " + md(c.date) + " 종가 (와야 할 날 " + md(S.exp) + ")");
+    if (S.mmtw) warn.push("⚠ 확정 MMTW가 " + md(c.mmtw_date) + " 값에서 멈춤");
+    $("stale").hidden = !warn.length;
+    $("stale").textContent = warn.join("\n");
+    $("stale").style.whiteSpace = "pre-line";
 
     $("d-v").textContent = pct(c.dd);
     $("d-v").className = "v" + (c.dd_ok ? " ok" : "");
