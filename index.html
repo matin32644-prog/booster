@@ -26,6 +26,8 @@ main{max-width:520px;margin:0 auto;padding:16px}
 .fill{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--sub)}
 .tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--mark)}
 .tick i{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--sub);white-space:nowrap}
+.tick i.up{top:auto;bottom:23px}
+.bar.room{margin-top:30px}
 .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--live);border:2px solid var(--card);transform:translate(-50%,-50%)}
 .note{font-size:13px;color:var(--sub);margin:2px 0 0}
 .foot{font-size:12px;color:var(--sub);margin:14px 2px;line-height:1.6}
@@ -68,7 +70,8 @@ function bar(el, lo, hi, val, live, ticks) {
   // lo..hi 를 왼쪽→오른쪽으로. 막대는 0(왼쪽 끝)에서 현재값까지
   const pos = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
   let h = '<div class="fill" style="left:0;width:' + pos(val) + '%"></div>';
-  for (const [x, lab] of ticks) h += '<div class="tick" style="left:' + pos(x) + '%"><i>' + lab + '</i></div>';
+  // 눈금이 가까우면(MMTW 20·10) 라벨 하나는 막대 위(up)로 올려 겹치지 않게 (2026-10-25)
+  for (const [x, lab, cls] of ticks) h += '<div class="tick" style="left:' + pos(x) + '%"><i class="' + (cls || "") + '">' + lab + '</i></div>';
   if (live != null) h += '<div class="dot" style="left:' + pos(live) + '%" title="장중"></div>';
   el.innerHTML = h;
 }
@@ -105,7 +108,8 @@ async function load() {
     $("m-v").textContent = mm == null ? "조회 실패" : mm.toFixed(1);
     $("m-v").className = "v" + (c.m1 ? " ok" : "");
     $("m-ok").textContent = c.m2 ? "✅ 2단" : (c.m1 ? "✅ 1단" : "⬜ 미충족");
-    if (mm != null) bar($("m-bar"), 100, 0, mm, L && L.mmtw != null ? L.mmtw : null, [[R.t1, "20 · 1단"], [R.t2, "10 · 2단"]]);
+    $("m-bar").classList.add("room");
+    if (mm != null) bar($("m-bar"), 100, 0, mm, L && L.mmtw != null ? L.mmtw : null, [[R.t1, "1단 " + R.t1, "up"], [R.t2, "2단 " + R.t2]]);
     $("m-n1").textContent = mm == null ? "" : (c.m1 ? (c.m2 ? "2단 구간" : "2단(" + R.t2 + " 미만)까지 " + (mm - R.t2).toFixed(1))
       : R.t1 + " 미만까지 " + (mm - R.t1).toFixed(1) + " 남음");
     $("m-n2").textContent = (c.mmtw_date && c.mmtw_date < c.date ? md(c.mmtw_date) + " 확정값 · " + md(c.date) + " 확정 대기" : md(c.mmtw_date) + " 확정")
