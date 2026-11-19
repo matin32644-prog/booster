@@ -8,9 +8,9 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#111827">
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--sub:#6b7280;--line:#e5e7eb;--track:#eef0f3;--ok:#16a34a;--warn:#d97706;--off:#6b7280;--mark:#111827;--live:#2563eb;--up:#dc2626;--dn:#2563eb}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa;--up:#f87171;--dn:#60a5fa}}
-:root[data-theme="dark"]{--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa;--up:#f87171;--dn:#60a5fa}
+:root{--bg:#f6f7f9;--card:#fff;--ink:#111827;--sub:#6b7280;--line:#e5e7eb;--track:#eef0f3;--ok:#16a34a;--warn:#d97706;--off:#6b7280;--mark:#111827;--live:#2563eb;--up:#dc2626;--dn:#2563eb;--z1:#dcfce7;--z2:#86efac;--zl:#15803d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa;--up:#f87171;--dn:#60a5fa;--z1:#163a24;--z2:#1f6b3a;--zl:#4ade80}}
+:root[data-theme="dark"]{--bg:#0b0f17;--card:#141a24;--ink:#e5e7eb;--sub:#9ca3af;--line:#232b38;--track:#1f2733;--mark:#e5e7eb;--live:#60a5fa;--up:#f87171;--dn:#60a5fa;--z1:#163a24;--z2:#1f6b3a;--zl:#4ade80}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
 main{max-width:520px;margin:0 auto;padding:16px}
@@ -22,12 +22,21 @@ main{max-width:520px;margin:0 auto;padding:16px}
 .k{font-size:13px;color:var(--sub)}
 .v{font-size:30px;font-weight:700;letter-spacing:-.5px}
 .ok{color:var(--ok)}
-.bar{position:relative;height:12px;background:var(--track);border-radius:6px;margin:14px 0 22px}
-.fill{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--sub)}
-.tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--mark)}
-.tick i{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--sub);white-space:nowrap}
-.tick i.up{top:auto;bottom:23px}
-.bar.room{margin-top:30px}
+/* 가로 구역 숫자축 (2026-11-20 12526 B안): 작은 값이 왼쪽, 초록 = 부스터 구역, 검은 선 = 확정값, 점 = 장중, 점선 = 다음 문턱까지 */
+.axis{position:relative;height:14px;background:var(--track);border-radius:7px;margin:38px 0 26px}
+.axis .zn{position:absolute;top:0;bottom:0}
+.axis .zn.z1{background:var(--z1)}
+.axis .zn.z2{background:var(--z2)}
+.axis .zn:first-child{border-radius:7px 0 0 7px}
+.axis .tk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--zl);transform:translateX(-1px)}
+.axis .tl{position:absolute;top:20px;font-size:11px;color:var(--sub);transform:translateX(-50%);white-space:nowrap}
+.axis .tl.g{color:var(--zl);font-weight:700}
+.axis .tl.e0{transform:none}
+.axis .tl.e1{transform:translateX(-100%)}
+.axis .zl{position:absolute;left:0;top:-32px;font-size:11px;font-weight:700;color:var(--zl);white-space:nowrap}
+.axis .cur{position:absolute;top:-6px;bottom:-6px;width:3px;background:var(--mark);transform:translateX(-1.5px);border-radius:2px}
+.axis .hb{position:absolute;top:-12px;height:7px;border:2px dashed var(--sub);border-bottom:none;border-radius:4px 4px 0 0}
+.axis .hb::before{content:"◀";position:absolute;left:-9px;top:-3px;font-size:9px;color:var(--sub)}
 .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--live);border:2px solid var(--card);transform:translate(-50%,-50%)}
 .note{font-size:13px;color:var(--sub);margin:2px 0 0}
 /* 장중 줄: 어제 확정(종가) 대비 오르면 빨강·내리면 파랑(한국식), 같으면 회색 (2026-11-20 12517) */
@@ -57,7 +66,7 @@ main{max-width:520px;margin:0 auto;padding:16px}
     <div class="row"><span class="k">조건 1 · QLD 고점 대비</span><span class="k" id="d-ok"></span></div>
     <div class="v" id="d-v">…</div>
     <div class="lv" id="d-lv" hidden></div>
-    <div class="bar" id="d-bar"></div>
+    <div class="axis" id="d-bar"></div>
     <p class="note" id="d-n1"></p>
     <p class="note" id="d-n2"></p>
   </div>
@@ -66,7 +75,7 @@ main{max-width:520px;margin:0 auto;padding:16px}
     <div class="row"><span class="k">조건 2 · MMTW (20일선 위 종목 비율)</span><span class="k" id="m-ok"></span></div>
     <div class="v" id="m-v">…</div>
     <div class="lv" id="m-lv" hidden></div>
-    <div class="bar" id="m-bar"></div>
+    <div class="axis" id="m-bar"></div>
     <p class="note" id="m-n1"></p>
     <p class="note" id="m-n2"></p>
   </div>
@@ -90,13 +99,18 @@ function liveLine(el, big, chg, digits, unit, sub) {
   return cls;
 }
 
-function bar(el, lo, hi, val, live, ticks, dcls) {
-  // lo..hi 를 왼쪽→오른쪽으로. 막대는 0(왼쪽 끝)에서 현재값까지
-  const pos = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
-  let h = '<div class="fill" style="left:0;width:' + pos(val) + '%"></div>';
-  // 눈금이 가까우면(MMTW 20·10) 라벨 하나는 막대 위(up)로 올려 겹치지 않게 (2026-10-25)
-  for (const [x, lab, cls] of ticks) h += '<div class="tick" style="left:' + pos(x) + '%"><i class="' + (cls || "") + '">' + lab + '</i></div>';
-  if (live != null) h += '<div class="dot ' + (dcls || "") + '" style="left:' + pos(live) + '%" title="장중"></div>';
+// 가로 구역 숫자축 (2026-11-20 12526 B안, 시안 XWP3Q3qsm6b2g3tTsr2g3h). lo..hi를 왼쪽→오른쪽(작은 값이 왼쪽)
+function axis(el, o) {
+  const x = v => Math.max(0, Math.min(100, (v - o.lo) / (o.hi - o.lo) * 100));
+  let h = "";
+  for (const z of o.zones) h += '<div class="zn ' + z.c + '" style="left:' + x(z.a) + "%;width:" + (x(z.b) - x(z.a)) + '%"></div>';
+  h += '<div class="zl">' + o.zl + "</div>";
+  for (const k of o.ticks) h += '<div class="tk" style="left:' + x(k) + '%"></div>';
+  for (const l of o.labs) h += '<div class="tl' + (l.c ? " " + l.c : "") + '" style="left:' + x(l.v) + '%">' + l.t + "</div>";
+  // 아직 문턱 밖이면 확정값에서 다음 문턱까지 점선 괄호
+  if (o.tgt != null && o.val > o.tgt) h += '<div class="hb" style="left:' + x(o.tgt) + "%;width:" + (x(o.val) - x(o.tgt)) + '%"></div>';
+  h += '<div class="cur" style="left:' + x(o.val) + '%" title="확정값"></div>';
+  if (o.live != null) h += '<div class="dot ' + (o.dir || "") + '" style="left:' + x(o.live) + '%" title="장중"></div>';
   el.innerHTML = h;
 }
 
@@ -126,7 +140,11 @@ async function load() {
     if (L) dc = liveLine($("d-lv"), "$" + L.qld.toFixed(2), (L.qld / c.qld - 1) * 100, 2, "%",
       "장중 " + L.t + " · " + md(c.date) + " 종가 $" + c.qld.toFixed(2) + " 대비 · 고점 대비 " + pct(L.dd));
     else $("d-lv").hidden = true;
-    bar($("d-bar"), 0, -30, c.dd, L ? L.dd : null, [[R.gate, pct(R.gate)]], dc);
+    // 왼쪽 끝은 −40%, 그보다 깊으면 10% 단위로 넓힌다(점이 끝에 붙어 안 보이지 않게)
+    const lo = Math.min(-40, Math.floor(Math.min(c.dd, L ? L.dd : 0) / 10) * 10);
+    axis($("d-bar"), {lo: lo, hi: 0, val: c.dd, live: L ? L.dd : null, dir: dc, tgt: c.dd_ok ? null : R.gate,
+      zones: [{a: lo, b: R.gate, c: "z1"}], zl: "충족 구역", ticks: [R.gate],
+      labs: [{v: lo, t: "−" + (-lo) + "%", c: "e0"}, {v: R.gate, t: "−" + (-R.gate) + "%", c: "g"}, {v: 0, t: "0% 고점", c: "e1"}]});
     $("d-n1").textContent = c.dd_ok ? "게이트 " + pct(R.gate) + " 넘음"
       : "게이트 $" + c.gate_px.toFixed(2) + "까지 " + pct(c.need);
     $("d-n2").textContent = "종가 $" + c.qld.toFixed(2) + " · 전고점 $" + c.ath.toFixed(2) + " (" + md(c.ath_date) + ")";
@@ -135,20 +153,23 @@ async function load() {
     $("m-v").textContent = mm == null ? "조회 실패" : mm.toFixed(1);
     $("m-v").className = "v" + (c.m1 ? " ok" : "");
     $("m-ok").textContent = c.m2 ? "✅ 2단" : (c.m1 ? "✅ 1단" : "⬜ 미충족");
-    $("m-bar").classList.add("room");
     const Lm = mm != null && L && L.mmtw != null ? L.mmtw : null;
     let mc = null;
     if (Lm != null) mc = liveLine($("m-lv"), Lm.toFixed(1), Lm - mm, 1, "",
       "장중 추정 " + L.mmtw_t + " · " + md(c.mmtw_date) + " 확정 " + mm.toFixed(1) + " 대비 (판정 아님)");
     else $("m-lv").hidden = true;
-    if (mm != null) bar($("m-bar"), 100, 0, mm, Lm, [[R.t1, "1단 " + R.t1, "up"], [R.t2, "2단 " + R.t2]], mc);
+    if (mm != null) axis($("m-bar"), {lo: 0, hi: 100, val: mm, live: Lm, dir: mc, tgt: c.m2 ? null : (c.m1 ? R.t2 : R.t1),
+      zones: [{a: 0, b: R.t2, c: "z2"}, {a: R.t2, b: R.t1, c: "z1"}], zl: "2단 · 1단", ticks: [R.t2, R.t1],
+      labs: [{v: 0, t: "0", c: "e0"}, {v: R.t2, t: String(R.t2), c: "g"}, {v: R.t1, t: String(R.t1), c: "g"}, {v: 50, t: "50"}, {v: 100, t: "100", c: "e1"}]});
+    else $("m-bar").innerHTML = "";
     $("m-n1").textContent = mm == null ? "" : (c.m1 ? (c.m2 ? "2단 구간" : "2단(" + R.t2 + " 미만)까지 " + (mm - R.t2).toFixed(1))
       : R.t1 + " 미만까지 " + (mm - R.t1).toFixed(1) + " 남음");
     $("m-n2").textContent = c.mmtw_date && c.mmtw_date < c.date ? md(c.mmtw_date) + " 확정값 · " + md(c.date) + " 확정 대기" : md(c.mmtw_date) + " 확정";
 
     $("foot").innerHTML = "부스터 = 조건 1 «그리고» 조건 2. MMTW " + R.t1 + " 미만이면 1단 " + R.ticker + " "
       + (R.u1_krw / 1e4) + "만원, " + R.t2 + " 미만이면 2단 " + (R.u2_krw / 1e4) + "만원.<br>"
-      + "큰 색 글자·막대 점 = 장중 값(추정, 판정 아님). 빨강 = 어제 확정보다 오름, 파랑 = 내림 · 갱신 " + j.updated + " KST";
+      + "초록 = 부스터 구역, 검은 선 = 확정값, 점선 = 다음 문턱까지 남은 거리.<br>"
+      + "큰 색 글자·축 위 점 = 장중 값(추정, 판정 아님). 빨강 = 어제 확정보다 오름, 파랑 = 내림 · 갱신 " + j.updated + " KST";
   } catch (e) {
     $("h1").textContent = "불러오기 실패";
     $("foot").innerHTML = '<span class="err">' + e + "</span>";
