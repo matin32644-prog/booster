@@ -51,6 +51,9 @@ main{max-width:520px;margin:0 auto;padding:16px}
 .dot.dn{background:var(--dn)}
 .dot.fl{background:var(--sub)}
 .foot{font-size:12px;color:var(--sub);margin:14px 2px;line-height:1.6}
+/* 우리 계좌 낙폭 (2026-11-20 12585 «맨위 우측 상단에 크지않게») */
+.acct{text-align:right;font-size:11.5px;color:var(--sub);margin:0 2px 6px;line-height:1.4}
+.acct b{font-size:13px;color:var(--ink);font-weight:800}
 .err{color:#dc2626}
 .stale{margin-top:12px;border-radius:14px;padding:12px 16px;background:#fef3c7;color:#78350f;font-size:14px;line-height:1.5}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stale{background:#3b2a06;color:#fde68a}}
@@ -59,6 +62,7 @@ main{max-width:520px;margin:0 auto;padding:16px}
 </head>
 <body>
 <main>
+  <div class="acct" id="acct" hidden></div>
   <div class="head" id="head"><b id="h1">불러오는 중</b><span id="h2"></span></div>
   <div class="stale" id="stale" hidden></div>
 
@@ -119,6 +123,15 @@ async function load() {
     const r = await fetch(URL_ + "?t=" + Date.now(), {cache: "no-store"});
     const j = await r.json();
     const c = j.close, R = j.rule, L = j.live;
+    // 우리 계좌 낙폭: 장중이면 현재가로, 아니면 마지막 종가로. 원장 기준(신호대로 체결 가정), %만
+    const A = j.acct;
+    if (A) {
+      const a = A.live || A;
+      $("acct").innerHTML = "우리 계좌 고점 대비 <b>" + pct(a.dd) + "</b><br>최대 " + pct(a.mdd) + " · 원금 대비 "
+        + pct(a.vs) + " · " + (A.live ? "장중 " + A.live.t : md(A.date) + " 종가");
+      $("acct").title = "원장(" + md(A.start) + "~, 신호대로 체결 가정) 기준. 고점 대비는 새로 넣은 돈을 뺀 기준가로 잰다";
+      $("acct").hidden = false;
+    } else $("acct").hidden = true;
     $("head").style.background = j.color;
     $("h1").textContent = j.l1;
     $("h2").textContent = md(c.date) + " 종가 기준 · 판정은 매일 " + R.run;
@@ -169,7 +182,8 @@ async function load() {
     $("foot").innerHTML = "부스터 = 조건 1 «그리고» 조건 2. MMTW " + R.t1 + " 미만이면 1단 " + R.ticker + " "
       + (R.u1_krw / 1e4) + "만원, " + R.t2 + " 미만이면 2단 " + (R.u2_krw / 1e4) + "만원.<br>"
       + "초록 = 부스터 구역, 검은 선 = 확정값, 점선 = 다음 문턱까지 남은 거리.<br>"
-      + "큰 색 글자·축 위 점 = 장중 값(추정, 판정 아님). 빨강 = 어제 확정보다 오름, 파랑 = 내림 · 갱신 " + j.updated + " KST";
+      + "큰 색 글자·축 위 점 = 장중 값(추정, 판정 아님). 빨강 = 어제 확정보다 오름, 파랑 = 내림 · 갱신 " + j.updated + " KST"
+      + (A ? "<br>우측 위 계좌 = 원장(" + md(A.start) + "~, 신호대로 체결 가정) 기준. 고점 대비는 새로 넣은 돈을 뺀 기준가, 원금 대비는 넣은 돈 합 대비" : "");
   } catch (e) {
     $("h1").textContent = "불러오기 실패";
     $("foot").innerHTML = '<span class="err">' + e + "</span>";
