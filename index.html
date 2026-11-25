@@ -50,6 +50,12 @@ main{max-width:520px;margin:0 auto;padding:16px}
 .dot.up{background:var(--up)}
 .dot.dn{background:var(--dn)}
 .dot.fl{background:var(--sub)}
+/* MMTW 최근 5일 확정 (2026-11-25 13026): 작은 꺾은선, 초록 띠 = 부스터 구역, 속 빈 점 = 장중 추정 */
+.spark{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.spark svg{display:block;width:100%;overflow:visible}
+.spark text{font-size:11px;fill:var(--sub);font-family:inherit}
+.spark text.sv{fill:var(--ink);font-weight:700}
+.spark text.sz{fill:var(--zl);font-weight:700;font-size:10px}
 .foot{font-size:12px;color:var(--sub);margin:14px 2px;line-height:1.6}
 /* 우리 계좌 낙폭 (2026-11-20 12585 «맨위 우측 상단에 크지않게») */
 .acct{text-align:right;font-size:11.5px;color:var(--sub);margin:0 2px 6px;line-height:1.4}
@@ -82,6 +88,7 @@ main{max-width:520px;margin:0 auto;padding:16px}
     <div class="axis" id="m-bar"></div>
     <p class="note" id="m-n1"></p>
     <p class="note" id="m-n2"></p>
+    <div class="spark" id="m-sp" hidden><span class="k" id="m-sp-k"></span><div id="m-sp-g"></div></div>
   </div>
 
   <p class="foot" id="foot"></p>
@@ -117,6 +124,41 @@ function axis(el, o) {
   if (o.live != null) h += '<div class="dot ' + (o.dir || "") + '" style="left:' + x(o.live) + '%" title="장중"></div>';
   el.innerHTML = h;
 }
+
+// MMTW 최근 5일 확정 작은 꺾은선 (2026-11-25 13026). pts = b.json mm5 [[날짜, 값]...], live = {v, dir} 장중 추정(있을 때만 속 빈 점)
+let lastSpark = null;
+function spark(el, pts, R, live) {
+  lastSpark = [el, pts, R, live];
+  const W = Math.max(240, el.clientWidth), H = 96, pt = 20, pb = 22, side = 18, padR = 22;
+  const vals = pts.map(p => p[1]).concat(live ? [live.v] : []);
+  const hi = Math.min(100, Math.max(30, Math.ceil((Math.max(...vals) + 6) / 10) * 10));
+  const slots = pts.length + (live ? 1 : 0);
+  const X = i => side + (slots < 2 ? 0 : i * (W - side - padR - side) / (slots - 1));
+  const Y = v => pt + (1 - v / hi) * (H - pt - pb);
+  const f1 = v => v.toFixed(1);
+  let s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="최근 확정 MMTW">';
+  s += '<rect x="0" y="' + Y(R.t1) + '" width="' + (W - padR + 4) + '" height="' + (Y(R.t2) - Y(R.t1)) + '" style="fill:var(--z1)"/>';
+  s += '<rect x="0" y="' + Y(R.t2) + '" width="' + (W - padR + 4) + '" height="' + (Y(0) - Y(R.t2)) + '" style="fill:var(--z2)"/>';
+  s += '<line x1="0" x2="' + (W - padR + 4) + '" y1="' + Y(0) + '" y2="' + Y(0) + '" style="stroke:var(--line)"/>';
+  s += '<text class="sz" x="' + (W - padR + 8) + '" y="' + (Y(R.t1) + 4) + '">' + R.t1 + "</text>";
+  s += '<text class="sz" x="' + (W - padR + 8) + '" y="' + (Y(R.t2) + 4) + '">' + R.t2 + "</text>";
+  s += '<polyline fill="none" points="' + pts.map((p, i) => X(i) + "," + Y(p[1])).join(" ") + '" style="stroke:var(--mark);stroke-width:2;stroke-linejoin:round"/>';
+  if (live) {
+    const i = pts.length, lc = live.dir === "up" ? "--up" : (live.dir === "dn" ? "--dn" : "--sub");
+    s += '<line x1="' + X(i - 1) + '" y1="' + Y(pts[i - 1][1]) + '" x2="' + X(i) + '" y2="' + Y(live.v) + '" style="stroke:var(--sub);stroke-width:1.5;stroke-dasharray:3 3"/>';
+    s += '<circle cx="' + X(i) + '" cy="' + Y(live.v) + '" r="4.5" style="fill:var(--card);stroke:var(' + lc + ');stroke-width:2"/>';
+    s += '<text x="' + X(i) + '" y="' + (Y(live.v) - 9) + '" text-anchor="middle" style="fill:var(' + lc + ');font-weight:700">' + f1(live.v) + "</text>";
+    s += '<text x="' + X(i) + '" y="' + (H - 6) + '" text-anchor="middle">장중</text>';
+  }
+  pts.forEach((p, i) => {
+    const last = i === pts.length - 1;
+    s += '<circle cx="' + X(i) + '" cy="' + Y(p[1]) + '" r="' + (last ? 4.5 : 3.5) + '" style="fill:var(--mark);stroke:var(--card);stroke-width:1.5"/>';
+    s += '<text x="' + X(i) + '" y="' + (Y(p[1]) - 9) + '" text-anchor="middle"' + (last ? ' class="sv"' : "") + ">" + f1(p[1]) + "</text>";
+    s += '<text x="' + X(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + md(p[0]) + "</text>";
+  });
+  el.innerHTML = s + "</svg>";
+}
+window.addEventListener("resize", () => { if (lastSpark && !$("m-sp").hidden) spark(...lastSpark); });
 
 async function load() {
   try {
@@ -178,6 +220,12 @@ async function load() {
     $("m-n1").textContent = mm == null ? "" : (c.m1 ? (c.m2 ? "2단 구간" : "2단(" + R.t2 + " 미만)까지 " + (mm - R.t2).toFixed(1))
       : R.t1 + " 미만까지 " + (mm - R.t1).toFixed(1) + " 남음");
     $("m-n2").textContent = c.mmtw_date && c.mmtw_date < c.date ? md(c.mmtw_date) + " 확정값 · " + md(c.date) + " 확정 대기" : md(c.mmtw_date) + " 확정";
+    const P5 = j.mm5 || [];
+    if (P5.length >= 2) {
+      $("m-sp").hidden = false;
+      $("m-sp-k").textContent = "최근 " + P5.length + "일 확정 MMTW · " + md(P5[0][0]) + "~" + md(P5[P5.length - 1][0]) + (Lm != null ? " · 속 빈 점 = 장중 추정" : "");
+      spark($("m-sp-g"), P5, R, Lm != null ? {v: Lm, dir: mc} : null);
+    } else $("m-sp").hidden = true;
 
     $("foot").innerHTML = "부스터 = 조건 1 «그리고» 조건 2. MMTW " + R.t1 + " 미만이면 1단 " + R.ticker + " "
       + (R.u1_krw / 1e4) + "만원, " + R.t2 + " 미만이면 2단 " + (R.u2_krw / 1e4) + "만원.<br>"
